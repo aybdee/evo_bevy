@@ -26,7 +26,7 @@ fn setup(mut env: ResMut<Environment>, mut commands: Commands) {
         Stroke::new(env.color, env.thickness),
     ));
 
-    env.spawn_n_random_organisms(commands, 300)
+    env.spawn_n_random_organisms(commands, 100)
 }
 
 fn main() {
@@ -43,7 +43,7 @@ fn main() {
     App::new()
         .add_plugins((DefaultPlugins, ShapePlugin))
         .insert_resource(environment)
-        .insert_resource(SimulationSpeed::new(0.01))
+        .insert_resource(SimulationSpeed::new(0.0001))
         .add_systems(Startup, setup)
         .add_systems(Update, environment_step)
         .run();
