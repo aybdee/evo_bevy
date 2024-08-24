@@ -1,10 +1,11 @@
-use bevy::prelude::*;
+use crate::utils::{generate_random_vec2, vec2_to_i32, Grid2d};
+use bevy::{
+    color::palettes::{css::RED, tailwind::RED_100},
+    prelude::*,
+};
 use bevy_prototype_lyon::prelude::*;
 use rand::Rng;
 use std::collections::HashMap;
-
-use crate::utils::{generate_random_vec2, vec2_to_i32, Grid2d};
-
 #[derive(Component, Copy, Clone)]
 pub struct Organism {
     color: Color,
@@ -90,7 +91,7 @@ impl Environment {
     pub fn spawn_n_random_organisms(&mut self, mut commands: Commands, n: usize) {
         let mut rng = rand::thread_rng();
         for _ in 0..(n) {
-            let rand_direction = Direction::Up;
+            let rand_direction = Direction::Left;
             let grid_x = rng.gen_range(0..self.organisms.width);
             let grid_y = rng.gen_range(0..self.organisms.height);
 
@@ -117,7 +118,7 @@ impl Environment {
                     },
                     ..default()
                 },
-                Fill::color(Color::srgb(1.0, 100.0, 0.0)),
+                Fill::color(Color::Srgba(RED)),
             ));
 
             self.organisms.set(grid_x, grid_y, organism.id().index());
