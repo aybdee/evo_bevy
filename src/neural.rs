@@ -11,7 +11,7 @@ pub struct Edge {
 
 impl NeuralGraph {
     pub fn new(definition: Vec<usize>) -> Self {
-        if (definition.len() < 2) {
+        if definition.len() < 2 {
             panic!("Neural network must have at least 2 layers")
         }
         let layers = definition.into_iter().map(Layer::new).collect();
@@ -38,10 +38,9 @@ impl NeuralGraph {
             && from.1 < self.layers[from.0].neurons.len()
             && to.1 < self.layers[to.0].neurons.len()
         {
-            self.layers[from.0].neurons[from.1].edges.push(Edge {
-                to: to,
-                weight: weight,
-            });
+            self.layers[from.0].neurons[from.1]
+                .edges
+                .push(Edge { to, weight });
         }
     }
 }

@@ -6,6 +6,7 @@ use bevy::{
 use bevy_prototype_lyon::prelude::*;
 use rand::Rng;
 use std::collections::HashMap;
+
 #[derive(Component, Copy, Clone)]
 pub struct Organism {
     color: Color,
@@ -88,7 +89,7 @@ impl Environment {
         }
     }
 
-    pub fn spawn_n_random_organisms(&mut self, mut commands: Commands, n: usize) {
+    pub fn spawn_n_random_organisms(&mut self, commands: &mut Commands, n: usize) {
         let mut rng = rand::thread_rng();
         for _ in 0..(n) {
             let rand_direction = Direction::Left;
@@ -137,8 +138,8 @@ impl OrganismUpdateStore {
         }
     }
 
-    pub fn add_organism(&mut self, id: u32, positon: (i32, i32), action: Action) {
-        self.updates.insert(positon, (id, action));
+    pub fn add_organism(&mut self, id: u32, position: (i32, i32), action: Action) {
+        self.updates.insert(position, (id, action));
     }
 
     pub fn get(&self, position: (i32, i32)) -> Option<&(u32, Action)> {

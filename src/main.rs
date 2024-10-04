@@ -12,78 +12,14 @@ use bevy::{
 };
 use bevy_prototype_lyon::prelude::*;
 use environment::{environment_step, Environment, SimulationSpeed};
+use graph::{DiagramConfig, Graph, GraphDiagram};
+use neural::NeuralGraph;
 use sickle_ui::{prelude::*, ui_commands::SetTextExt, SickleUiPlugin};
 
 const ORGANISM_SIZE: f32 = 2.5;
 
-fn draw_graph(mut commands: Commands) {}
-
 fn setup(mut env: ResMut<Environment>, mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
-    // commands.ui_builder(UiRoot).column(|column| {
-    //     column
-    //         .style()
-    //         .position_type(PositionType::Absolute)
-    //         .justify_content(JustifyContent::Start)
-    //         .padding(UiRect::new(
-    //             Val::Px(5.0),
-    //             Val::Px(5.0),
-    //             Val::Px(5.0),
-    //             Val::Px(5.0),
-    //         ))
-    //         .width(Val::Percent(25.0))
-    //         .right(Val::Px(0.0))
-    //         .top(Val::Px(0.0))
-    //         .background_color(Color::Srgba(GHOST_WHITE));
-    //
-    //     column
-    //         .label(LabelConfig::default())
-    //         .style()
-    //         .align_self(AlignSelf::Start)
-    //         .justify_self(JustifySelf::Start)
-    //         .entity_commands()
-    //         .set_text(
-    //             "View panel",
-    //             Some(TextStyle {
-    //                 color: Color::Srgba(BLACK),
-    //                 font_size: 30.0,
-    //                 ..default()
-    //             }),
-    //         );
-    // });
-    //
-    // commands.ui_builder(UiRoot).column(|column| {
-    //     column
-    //         .style()
-    //         .position_type(PositionType::Absolute)
-    //         .justify_content(JustifyContent::Start)
-    //         .padding(UiRect::new(
-    //             Val::Px(5.0),
-    //             Val::Px(5.0),
-    //             Val::Px(5.0),
-    //             Val::Px(5.0),
-    //         ))
-    //         .width(Val::Percent(25.0))
-    //         .left(Val::Px(0.0))
-    //         .top(Val::Px(0.0))
-    //         .background_color(Color::Srgba(GHOST_WHITE));
-    //
-    //     column
-    //         .label(LabelConfig::default())
-    //         .style()
-    //         .align_self(AlignSelf::Start)
-    //         .justify_self(JustifySelf::Start)
-    //         .entity_commands()
-    //         .set_text(
-    //             "Evo",
-    //             Some(TextStyle {
-    //                 color: Color::Srgba(BLACK),
-    //                 font_size: 30.0,
-    //                 ..default()
-    //             }),
-    //         );
-    // });
-
     //draw boundary
     commands.spawn((
         ShapeBundle {
@@ -100,7 +36,24 @@ fn setup(mut env: ResMut<Environment>, mut commands: Commands) {
         Stroke::new(env.color, env.thickness),
     ));
 
-    env.spawn_n_random_organisms(commands, 100)
+    env.spawn_n_random_organisms(&mut commands, 1000);
+
+    let mut test_net = NeuralGraph::new(vec![2, 3, 2]);
+    test_net.add_connection((0, 0), (2, 0), 1.0);
+    test_net.add_connection((0, 1), (2, 0), 1.0);
+    test_net.add_connection((0, 1), (1, 1), 1.0);
+    let mut test_graph = Graph::from(test_net);
+    test_graph.sort_edges();
+    let diagram = test_graph.get_diagram(DiagramConfig {
+        padding: 1.0,
+        width: 100.0,
+        height: 100.0,
+        node_radius: 8.0,
+        position: (0.0, 0.0),
+        same_rank_scale: 0.8,
+        arrow_thickness: 2.0,
+    });
+    diagram.spawn(&mut commands);
 }
 
 fn main() {
