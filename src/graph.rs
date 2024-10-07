@@ -1,5 +1,8 @@
-use crate::neural::{self, NeuralGraph, Neuron};
-use bevy::prelude::*;
+use crate::{
+    neural::{self, NeuralNet, Neuron},
+    utils::f32_to_vec2,
+};
+use bevy::{color::palettes::css::BLACK, prelude::*};
 use bevy_prototype_lyon::prelude::*;
 use std::collections::HashMap;
 
@@ -39,9 +42,7 @@ pub struct StraightEdge {
 
 #[derive(Debug)]
 pub struct BezierEdge {
-    pub start: (f32, f32),
-    pub end: (f32, f32),
-    pub control: (f32, f32),
+    pub controls: Vec<(f32, f32)>,
 }
 
 impl GraphDiagram {
@@ -62,16 +63,41 @@ impl GraphDiagram {
                             parent.spawn((
                                 ShapeBundle {
                                     path: GeometryBuilder::build_as(&shapes::Line(
-                                        Vec2::new(straight_edge.start.0, straight_edge.start.1),
-                                        Vec2::new(straight_edge.end.0, straight_edge.end.1),
+                                        f32_to_vec2(straight_edge.start),
+                                        f32_to_vec2(straight_edge.end),
                                     )),
                                     ..default()
                                 },
                                 Stroke::new(Color::BLACK, self.config.arrow_thickness),
                             ));
                         }
-                        _ => {
-                            todo!();
+
+                        DiagramEdge::Bezier(bezier_edge) => {
+                            let mut path_builder = PathBuilder::new();
+
+                            let last_control = bezier_edge.controls.first().unwrap();
+                            path_builder.move_to(f32_to_vec2(*last_control));
+
+                            if bezier_edge.controls.len() == 2 {
+                                path_builder.quadratic_bezier_to(
+                                    f32_to_vec2(bezier_edge.controls[0]),
+                                    f32_to_vec2(bezier_edge.controls[1]),
+                                );
+                            } else if bezier_edge.controls.len() == 3 {
+                                // path_builder.cubic_bezier_to(
+                                //     f32_to_vec2(bezier_edge.controls[0]),
+                                //     f32_to_vec2(bezier_edge.controls[1]),
+                                //     f32_to_vec2(bezier_edge.controls[2]),
+                                // );
+                            } else {
+                                todo!()
+                            }
+                            path_builder.close();
+                            let path = path_builder.build();
+                            parent.spawn((
+                                ShapeBundle { path, ..default() },
+                                Stroke::new(BLACK, 2.0),
+                            ));
                         }
                     }
                 }
@@ -244,6 +270,7 @@ impl Graph {
 
         // let mut node_positions: Vec<(f32, f32)> = vec![];
         let mut nodes_with_positions: HashMap<(usize, usize), (f32, f32)> = HashMap::new();
+        let mut dummy_nodes: Vec<(usize, usize)> = vec![];
 
         // Iterate over each layer and calculate node positions
         for (layer_index, layer) in self.layers.iter().enumerate() {
@@ -280,18 +307,57 @@ impl Graph {
             }
         }
 
+        let mut bezier_registry: HashMap<(usize, usize), Vec<(f32, f32)>> = HashMap::new();
         self.for_each_vertex(|layer_index, vertex_index, vertex| {
             let (x, y) = nodes_with_positions
                 .get(&(layer_index, vertex_index))
                 .unwrap();
+
+            let (_, from_vertex) = self.get_vertex((layer_index, vertex_index)).unwrap();
             for edge in &vertex.edges {
                 let (to_x, to_y) = nodes_with_positions.get(&edge.to).unwrap();
+                let (_, to_vertex) = self.get_vertex(edge.to).unwrap();
+
                 edges.push(DiagramEdge::Straight(StraightEdge {
                     start: (*x, *y),
                     end: (*to_x, *to_y),
                 }));
+
+                if from_vertex.is_dummy {
+                    dummy_nodes.push((layer_index, vertex_index));
+                }
+
+                // if from_vertex.is_dummy || to_vertex.is_dummy {
+                //     println!("{:?}", (layer_index, vertex_index));
+                //     println!("b{:?}", bezier_registry);
+                //     let mut curve = bezier_registry
+                //         .get(&(layer_index, vertex_index))
+                //         .unwrap_or(&vec![(*x, *y)])
+                //         .clone();
+                //     curve.push((*to_x, *to_y));
+                //     bezier_registry.insert(edge.to, curve);
+                //     bezier_registry.remove(&(layer_index, vertex_index));
+                //
+                //     println!("a{:?}", bezier_registry);
+                // } else {
+                //     edges.push(DiagramEdge::Straight(StraightEdge {
+                //         start: (*x, *y),
+                //         end: (*to_x, *to_y),
+                //     }));
+                // }
             }
+
+            edges.extend(bezier_registry.values().map(|curve| {
+                DiagramEdge::Bezier(BezierEdge {
+                    controls: curve.to_vec(),
+                })
+            }));
         });
+
+        //remove dummy nodes
+        for node in dummy_nodes {
+            nodes_with_positions.remove(&node);
+        }
 
         GraphDiagram {
             nodes: nodes_with_positions.values().cloned().collect(),
@@ -301,12 +367,11 @@ impl Graph {
     }
 }
 
-impl From<NeuralGraph> for Graph {
-    fn from(graph: NeuralGraph) -> Self {
+impl From<NeuralNet> for Graph {
+    fn from(graph: NeuralNet) -> Self {
         let layers = graph.layers.clone();
-        let mut long_edges: Vec<((usize, usize), neural::Edge)> = Vec::new();
+        let mut long_edges: Vec<((usize, usize), neural::Connection)> = Vec::new();
         let mut dummy_neurons: Vec<(usize, usize)> = Vec::new();
-
         let mut layers: Vec<_> = layers
             .into_iter()
             .enumerate()
@@ -316,7 +381,7 @@ impl From<NeuralGraph> for Graph {
                     .into_iter()
                     .enumerate()
                     .map(|(neuron_index, mut neuron)| {
-                        neuron.edges.retain(|edge| {
+                        neuron.connections.retain(|edge| {
                             let is_short_edge = edge.to.0 <= layer_index + 1;
                             if !is_short_edge {
                                 long_edges.push(((layer_index, neuron_index), edge.clone()));
@@ -330,14 +395,13 @@ impl From<NeuralGraph> for Graph {
             })
             .collect();
 
-        //add dummy vertices for all the long connections
+        // Add dummy neurons for all the long connections
         for ((from_layer_index, from_neuron_index), edge) in long_edges {
             for layer in (from_layer_index + 1)..edge.to.0 {
                 if layer == edge.to.0 - 1 {
-                    //connect to child neuron
+                    // Connect to child neuron
                     layers[layer].neurons.push(Neuron {
-                        weight: 0.0,
-                        edges: vec![neural::Edge {
+                        connections: vec![neural::Connection {
                             to: (edge.to.0, edge.to.1),
                             weight: edge.weight,
                         }],
@@ -345,20 +409,18 @@ impl From<NeuralGraph> for Graph {
                 } else {
                     let next_vertex_index = layers[layer + 1].neurons.len();
                     layers[layer].neurons.push(Neuron {
-                        weight: 0.0,
-                        edges: vec![neural::Edge {
+                        connections: vec![neural::Connection {
                             to: (layer + 1, next_vertex_index),
                             weight: 0.0,
                         }],
                     });
                 }
-
                 let new_neuron_index = layers[layer].neurons.len() - 1;
                 if layer == from_layer_index + 1 {
-                    //connect to parent neuron
+                    // Connect to parent neuron
                     layers[from_layer_index].neurons[from_neuron_index]
-                        .edges
-                        .push(neural::Edge {
+                        .connections
+                        .push(neural::Connection {
                             to: (layer, new_neuron_index),
                             weight: edge.weight,
                         })
@@ -377,14 +439,13 @@ impl From<NeuralGraph> for Graph {
                         .iter()
                         .map(|neuron| Vertex {
                             edges: neuron
-                                .edges
+                                .connections
                                 .iter()
                                 .map(|edge| Edge {
                                     weight: edge.weight,
                                     to: edge.to,
                                 })
                                 .collect(),
-
                             is_dummy: false,
                         })
                         .collect(),
@@ -392,7 +453,7 @@ impl From<NeuralGraph> for Graph {
                 .collect(),
         };
 
-        //turn all dummy_neurons to dummy_vertices
+        // Mark dummy neurons as dummy vertices
         for (layer_index, neuron_index) in dummy_neurons {
             new_graph.layers[layer_index].vertices[neuron_index].is_dummy = true;
         }
@@ -403,7 +464,7 @@ impl From<NeuralGraph> for Graph {
 
 #[derive(Clone, Debug)]
 pub struct Edge {
-    weight: f64,
+    weight: f32,
     to: (usize, usize),
 }
 
@@ -419,7 +480,7 @@ mod tests {
 
     #[test]
     fn test_graph_conversion() {
-        let mut test_net = NeuralGraph::new(vec![2, 3, 2]);
+        let mut test_net = NeuralNet::new(vec![2, 3, 2]);
         test_net.add_connection((0, 0), (2, 0), 1.0);
         test_net.add_connection((0, 1), (2, 0), 1.0);
         test_net.add_connection((0, 1), (1, 1), 1.0);
@@ -434,7 +495,7 @@ mod tests {
 
     #[test]
     fn test_vertex_crossing() {
-        let mut test_net = NeuralGraph::new(vec![2, 3, 2]);
+        let mut test_net = NeuralNet::new(vec![2, 3, 2]);
         test_net.add_connection((0, 0), (2, 0), 1.0);
         test_net.add_connection((0, 1), (2, 0), 1.0);
         test_net.add_connection((0, 1), (1, 1), 1.0);
@@ -450,7 +511,7 @@ mod tests {
 
     #[test]
     fn test_convert_to_graph() {
-        let mut test_net = NeuralGraph::new(vec![2, 3, 2]);
+        let mut test_net = NeuralNet::new(vec![2, 3, 2]);
         test_net.add_connection((0, 0), (2, 0), 1.0);
         test_net.add_connection((0, 1), (2, 0), 1.0);
         test_net.add_connection((0, 1), (1, 1), 1.0);
@@ -465,6 +526,6 @@ mod tests {
             same_rank_scale: 0.5,
             arrow_thickness: 2.0,
         });
-        println!("{:?}", diagram);
+        // println!("{:?}", diagram);
     }
 }

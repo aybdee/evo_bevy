@@ -10,6 +10,10 @@ pub fn generate_random_vec2(x_bounds: (f32, f32), y_bounds: (f32, f32)) -> Vec2 
     Vec2::new(x, y)
 }
 
+pub fn f32_to_vec2(f: (f32, f32)) -> Vec2 {
+    Vec2::new(f.0, f.1)
+}
+
 pub fn vec2_to_i32(vec: Vec2) -> (i32, i32) {
     (vec.x as i32, vec.y as i32)
 }
