@@ -1,5 +1,6 @@
 mod bezier;
 mod environment;
+mod gene;
 mod graph;
 mod neural;
 mod utils;
@@ -15,9 +16,8 @@ use bevy_prototype_lyon::prelude::*;
 use environment::{environment_step, Environment, SimulationSpeed};
 use graph::{DiagramConfig, Graph, GraphDiagram};
 use neural::NeuralNet;
-use sickle_ui::{prelude::*, ui_commands::SetTextExt, SickleUiPlugin};
 
-const ORGANISM_SIZE: f32 = 2.5;
+const ORGANISM_SIZE: f32 = 3.5;
 
 fn setup(mut env: ResMut<Environment>, mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
@@ -61,7 +61,6 @@ fn main() {
                 ..default()
             }),
             ShapePlugin,
-            SickleUiPlugin,
         ))
         .insert_resource(ClearColor(Color::Srgba(GRAY_100)))
         .insert_resource(environment)

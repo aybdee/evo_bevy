@@ -402,6 +402,7 @@ impl From<NeuralNet> for Graph {
                     // Connect to child neuron
                     layers[layer].neurons.push(Neuron {
                         connections: vec![neural::Connection {
+                            from: (from_layer_index, from_neuron_index),
                             to: (edge.to.0, edge.to.1),
                             weight: edge.weight,
                         }],
@@ -410,6 +411,7 @@ impl From<NeuralNet> for Graph {
                     let next_vertex_index = layers[layer + 1].neurons.len();
                     layers[layer].neurons.push(Neuron {
                         connections: vec![neural::Connection {
+                            from: (from_layer_index, from_neuron_index),
                             to: (layer + 1, next_vertex_index),
                             weight: 0.0,
                         }],
@@ -421,6 +423,7 @@ impl From<NeuralNet> for Graph {
                     layers[from_layer_index].neurons[from_neuron_index]
                         .connections
                         .push(neural::Connection {
+                            from: (from_layer_index, from_neuron_index),
                             to: (layer, new_neuron_index),
                             weight: edge.weight,
                         })
@@ -443,6 +446,7 @@ impl From<NeuralNet> for Graph {
                                 .iter()
                                 .map(|edge| Edge {
                                     weight: edge.weight,
+                                    from: edge.from,
                                     to: edge.to,
                                 })
                                 .collect(),
@@ -465,6 +469,7 @@ impl From<NeuralNet> for Graph {
 #[derive(Clone, Debug)]
 pub struct Edge {
     weight: f32,
+    from: (usize, usize),
     to: (usize, usize),
 }
 

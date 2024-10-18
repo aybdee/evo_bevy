@@ -1,4 +1,8 @@
-use crate::utils::{generate_random_vec2, vec2_to_i32, Grid2d};
+use crate::{
+    gene::Genome,
+    neural::{NeuralNet, WEIGHT_RANGE},
+    utils::{generate_random_vec2, vec2_to_i32, Grid2d},
+};
 use bevy::{
     color::palettes::{css::RED, tailwind::RED_100},
     prelude::*,
@@ -7,9 +11,10 @@ use bevy_prototype_lyon::prelude::*;
 use rand::Rng;
 use std::collections::HashMap;
 
-#[derive(Component, Copy, Clone)]
+#[derive(Component, Clone)]
 pub struct Organism {
-    color: Color,
+    brain: NeuralNet,
+    genome: Genome,
     direction: Direction,
     position: Vec2,
 }
@@ -102,9 +107,14 @@ impl Environment {
             let world_y = (grid_y as f32 * self.organism_size) + self.y - (self.height / 2.0)
                 + (self.organism_size / 2.0);
 
+            let mut organism_brain = NeuralNet::new(vec![2, 1, 2]);
+            organism_brain.init_random_connections(4, (-WEIGHT_RANGE, WEIGHT_RANGE));
+            let organism_genome: Genome = organism_brain.clone().into();
+            let organism_color = organism_genome.get_color();
             let organism = commands.spawn((
                 Organism {
-                    color: Color::srgb(1.0, 100.0, 0.0),
+                    brain: organism_brain,
+                    genome: organism_genome,
                     direction: rand_direction,
                     position: Vec2::new(grid_x as f32, grid_y as f32),
                 },
@@ -119,7 +129,11 @@ impl Environment {
                     },
                     ..default()
                 },
-                Fill::color(Color::Srgba(RED)),
+                Fill::color(Color::hsl(
+                    organism_color.hue as f32,
+                    organism_color.saturation,
+                    0.5,
+                )),
             ));
 
             self.organisms.set(grid_x, grid_y, organism.id().index());
@@ -155,7 +169,7 @@ pub fn environment_step(
     if simulation_speed.timer.tick(time.delta()).just_finished() {
         let organisms: Vec<(Organism, Entity)> = organism_query
             .iter()
-            .map(|(organism, entity, _)| (*organism, entity))
+            .map(|(organism, entity, _)| (organism.clone(), entity))
             .collect();
 
         let next_actions = poll_organisms(&mut env, organisms);
@@ -311,7 +325,7 @@ pub fn poll_organisms(
 
     let organism_store: HashMap<u32, Organism> = organisms
         .iter()
-        .map(|(organism, entity)| (entity.index(), *organism))
+        .map(|(organism, entity)| (entity.index(), organism.clone()))
         .collect();
 
     let mut update_store: OrganismUpdateStore = OrganismUpdateStore::new();
