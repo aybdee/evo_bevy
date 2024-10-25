@@ -9,3 +9,5 @@ Sensory neurons
 Action neurons
 0 - Mx - Move Left Right(-/+) (-1 1)
 1 - My - Move Up Down (-/+) (-1 1)
+
+![evo demo](demo.gif)
