@@ -1,8 +1,9 @@
-mod bezier;
 mod environment;
 mod gene;
 mod graph;
 mod neural;
+mod organism;
+mod systems;
 mod utils;
 
 use bevy::{
@@ -13,11 +14,13 @@ use bevy::{
     prelude::*,
 };
 use bevy_prototype_lyon::prelude::*;
-use environment::{environment_step, Environment, SimulationSpeed};
+use environment::{Environment, SimulationSpeed};
 use graph::{DiagramConfig, Graph, GraphDiagram};
-use neural::NeuralNet;
+use neural::{NeuralNet, WEIGHT_RANGE};
+use organism::Organism;
+use systems::environment_step;
 
-const ORGANISM_SIZE: f32 = 3.5;
+const ORGANISM_SIZE: f32 = 5.0;
 
 fn setup(mut env: ResMut<Environment>, mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
@@ -37,7 +40,29 @@ fn setup(mut env: ResMut<Environment>, mut commands: Commands) {
         Stroke::new(env.color, env.thickness),
     ));
 
-    env.spawn_n_random_organisms(&mut commands, 1000);
+    let mut neural_net_1 = NeuralNet::new(vec![2, 1, 2]);
+    neural_net_1.init_random_connections(5, (-WEIGHT_RANGE, WEIGHT_RANGE));
+
+    let mut neural_net_2 = NeuralNet::new(vec![2, 1, 2]);
+    neural_net_2.init_random_connections(5, (-WEIGHT_RANGE, WEIGHT_RANGE));
+
+    let organism_1 = Organism {
+        genome: neural_net_1.clone().into(),
+        brain: neural_net_1,
+        position: Vec2::new(0.0, 0.0),
+    };
+
+    let organism_2 = Organism {
+        genome: neural_net_2.clone().into(),
+        brain: neural_net_2,
+        position: Vec2::new(0.0, 0.0),
+    };
+
+    env.spawn_organism_n(&mut commands, organism_1, 50);
+
+    env.spawn_organism_n(&mut commands, organism_2, 50);
+
+    // env.spawn_n_random_organisms(&mut commands, 1000);
 }
 
 fn main() {

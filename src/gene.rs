@@ -144,7 +144,7 @@ impl Gene {
                 saturation: color_weight.abs() / WEIGHT_RANGE,
             };
 
-            println!("gene - {} {:?}", color.saturation, color.to_hex());
+            // println!("gene - {} {:?}", color.saturation, color.to_hex());
 
             color
         } else {

@@ -4,7 +4,7 @@ use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
-pub const WEIGHT_RANGE: f32 = 4.0;
+pub const WEIGHT_RANGE: f32 = 2.0;
 
 #[derive(Clone)]
 pub struct NeuralNet {
@@ -127,7 +127,7 @@ impl NeuralNet {
         (x.exp() - (-x).exp()) / (x.exp() + (-x).exp())
     }
 
-    pub fn forward_pass(&mut self, input: Vec<f32>) -> Vec<f32> {
+    pub fn forward(&self, input: Vec<f32>) -> Vec<f32> {
         let mut accumulator: HashMap<(usize, usize), f32> = HashMap::new();
         self.for_each_neuron(|layer_index, neuron_index, neuron| {
             let id = (layer_index, neuron_index);
@@ -263,7 +263,7 @@ mod tests {
         test_net.add_connection((0, 0), (1, 1), 1.2);
         test_net.add_connection((0, 1), (1, 1), 2.1);
         test_net.add_connection((1, 1), (2, 0), 1.0);
-        let output = test_net.forward_pass(vec![0.1, 0.2]);
+        let output = test_net.forward(vec![0.1, 0.2]);
         assert!(output == vec![0.45658463, 0.0]);
     }
 }

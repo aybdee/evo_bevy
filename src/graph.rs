@@ -326,25 +326,6 @@ impl Graph {
                 if from_vertex.is_dummy {
                     dummy_nodes.push((layer_index, vertex_index));
                 }
-
-                // if from_vertex.is_dummy || to_vertex.is_dummy {
-                //     println!("{:?}", (layer_index, vertex_index));
-                //     println!("b{:?}", bezier_registry);
-                //     let mut curve = bezier_registry
-                //         .get(&(layer_index, vertex_index))
-                //         .unwrap_or(&vec![(*x, *y)])
-                //         .clone();
-                //     curve.push((*to_x, *to_y));
-                //     bezier_registry.insert(edge.to, curve);
-                //     bezier_registry.remove(&(layer_index, vertex_index));
-                //
-                //     println!("a{:?}", bezier_registry);
-                // } else {
-                //     edges.push(DiagramEdge::Straight(StraightEdge {
-                //         start: (*x, *y),
-                //         end: (*to_x, *to_y),
-                //     }));
-                // }
             }
 
             edges.extend(bezier_registry.values().map(|curve| {

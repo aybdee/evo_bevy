@@ -14,6 +14,11 @@ pub fn f32_to_vec2(f: (f32, f32)) -> Vec2 {
     Vec2::new(f.0, f.1)
 }
 
+pub fn bernoulli_trial(probability: f32) -> bool {
+    let mut rng = rand::thread_rng();
+    rng.gen_bool(probability as f64)
+}
+
 pub fn vec2_to_i32(vec: Vec2) -> (i32, i32) {
     (vec.x as i32, vec.y as i32)
 }
