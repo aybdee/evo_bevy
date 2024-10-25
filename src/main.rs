@@ -40,29 +40,20 @@ fn setup(mut env: ResMut<Environment>, mut commands: Commands) {
         Stroke::new(env.color, env.thickness),
     ));
 
-    let mut neural_net_1 = NeuralNet::new(vec![2, 1, 2]);
-    neural_net_1.init_random_connections(5, (-WEIGHT_RANGE, WEIGHT_RANGE));
+    for _ in 0..2 {
+        let mut neural_net_1 = NeuralNet::new(vec![2, 1, 2]);
+        neural_net_1.init_random_connections(5, (-WEIGHT_RANGE, WEIGHT_RANGE));
 
-    let mut neural_net_2 = NeuralNet::new(vec![2, 1, 2]);
-    neural_net_2.init_random_connections(5, (-WEIGHT_RANGE, WEIGHT_RANGE));
+        let organism_1 = Organism {
+            genome: neural_net_1.clone().into(),
+            brain: neural_net_1,
+            position: Vec2::new(0.0, 0.0),
+        };
 
-    let organism_1 = Organism {
-        genome: neural_net_1.clone().into(),
-        brain: neural_net_1,
-        position: Vec2::new(0.0, 0.0),
-    };
+        env.spawn_organism_n(&mut commands, organism_1, 50);
+    }
 
-    let organism_2 = Organism {
-        genome: neural_net_2.clone().into(),
-        brain: neural_net_2,
-        position: Vec2::new(0.0, 0.0),
-    };
-
-    env.spawn_organism_n(&mut commands, organism_1, 50);
-
-    env.spawn_organism_n(&mut commands, organism_2, 50);
-
-    // env.spawn_n_random_organisms(&mut commands, 1000);
+    // env.spawn_n_random_organisms(&mut commands, 300);
 }
 
 fn main() {
@@ -89,7 +80,7 @@ fn main() {
         ))
         .insert_resource(ClearColor(Color::Srgba(GRAY_100)))
         .insert_resource(environment)
-        .insert_resource(SimulationSpeed::new(0.0001))
+        .insert_resource(SimulationSpeed::new(0.01))
         .add_systems(Startup, setup)
         .add_systems(Update, environment_step)
         .run();
