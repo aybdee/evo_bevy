@@ -50,7 +50,7 @@ fn setup(mut env: ResMut<Environment>, mut commands: Commands) {
             position: Vec2::new(0.0, 0.0),
         };
 
-        env.spawn_organism_n(&mut commands, organism_1, 50);
+        env.spawn_organism_n(&mut commands, organism_1, 100);
     }
 
     // env.spawn_n_random_organisms(&mut commands, 300);
